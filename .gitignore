@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+# build directory for cmake
+# assuming that it is called build
+build
+
+# user needs to add glad according
+# to their opengl profile
+glad
