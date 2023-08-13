@@ -18,8 +18,6 @@ find_package(glm REQUIRED)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-#include_directories(app PUBLIC glad/include stb/include include)
-
 file(COPY resources DESTINATION ${CMAKE_BINARY_DIR})
 
 add_subdirectory(glad)
