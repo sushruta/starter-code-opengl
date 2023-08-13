@@ -10,6 +10,8 @@
 #include <camera.h>
 
 #include <iostream>
+#include <vector>
+#include <stdlib.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -18,7 +20,9 @@ void processInput(GLFWwindow *window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_WIDTH_2 = SCR_WIDTH * 2;
 const unsigned int SCR_HEIGHT = 600;
+const float aspectRatio = (float) SCR_WIDTH / (float) SCR_HEIGHT;
 
 // camera initialization
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -29,6 +33,37 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f; // time b/w current frame and last frame
 float lastFrame = 0.0f;
+
+class RenderParams
+{
+  public:
+    unsigned int startW, startH, width, height;
+    glm::mat4 model, view, projection;
+
+    unsigned int* VAO_address;
+    std::vector<glm::vec3> positions;
+};
+
+void render(RenderParams& rp, Shader& shader)
+{
+  glViewport(rp.startW, rp.startH, rp.width, rp.height);
+
+  shader.setMat4("projection", rp.projection);
+  shader.setMat4("view", rp.view);
+
+  glBindVertexArray(*(rp.VAO_address));
+  // for (auto position : rp.positions)
+  for (unsigned int i=0; i<rp.positions.size(); ++i)
+  {
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, rp.positions[i]);
+    float angle = 15.0f * i;
+    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+    shader.setMat4("model", model);
+
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+  }
+}
 
 int main()
 {
@@ -45,7 +80,7 @@ int main()
 
   // glfw window creation
   // --------------------
-  GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL Window", nullptr, nullptr);
+  GLFWwindow* window = glfwCreateWindow(SCR_WIDTH_2, SCR_HEIGHT, "OpenGL Window", nullptr, nullptr);
   if (window == nullptr)
   {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -116,7 +151,7 @@ int main()
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
   };
 
-  glm::vec3 cubePositions[] = {
+  std::vector<glm::vec3> cubePositions{
     glm::vec3( 0.0f,  0.0f,  0.0f),
     glm::vec3( 2.0f,  5.0f, -15.0f),
     glm::vec3(-1.5f, -2.2f, -2.5f),
@@ -128,6 +163,7 @@ int main()
     glm::vec3( 1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };
+
 
   unsigned int VBO, VAO;
   glGenVertexArrays(1, &VAO);
@@ -225,28 +261,33 @@ int main()
 
     shader.use();
 
-    glm::mat4 projection = glm::perspective(
+    RenderParams rparams;
+
+    rparams.startW = 0;
+    rparams.startH = 0;
+    rparams.width = SCR_WIDTH;
+    rparams.height = SCR_HEIGHT;
+    rparams.projection = glm::perspective(
         glm::radians(camera.Zoom),
         (float) SCR_WIDTH / (float) SCR_HEIGHT,
         0.1f,
         100.0f
+        );
+    rparams.view = camera.GetViewMatrix();
+    rparams.VAO_address = &VAO;
+    rparams.positions = cubePositions;
+
+    render(rparams, shader);
+
+    // render the scene again but from a different point of view
+    rparams.view = glm::lookAt(
+        glm::vec3(-1.0f, 7.0f, 10.0f),
+        glm::vec3(0.4f, 0.5f, 5.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f)
     );
-    shader.setMat4("projection", projection);
+    rparams.startW = SCR_WIDTH;
 
-    glm::mat4 view = camera.GetViewMatrix();
-    shader.setMat4("view", view);
-
-    glBindVertexArray(VAO);
-    for (unsigned int i=0; i<10; ++i)
-    {
-      glm::mat4 model = glm::mat4(1.0f);
-      model = glm::translate(model, cubePositions[i]);
-      float angle = 20.0f * i;
-      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-      shader.setMat4("model", model);
-
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+    render(rparams, shader);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -259,6 +300,8 @@ int main()
   glfwTerminate();
   return 0;
 }
+
+
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
