@@ -16,12 +16,12 @@ find_package(OpenGL REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 
-#add_subdirectory(src)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-include_directories(app PUBLIC glad/include stb/include include)
+#include_directories(app PUBLIC glad/include stb/include include)
 
 file(COPY resources DESTINATION ${CMAKE_BINARY_DIR})
 
 add_subdirectory(glad)
 add_subdirectory(stb)
-add_subdirectory(app)
+add_subdirectory(src)
