@@ -1,6 +1,7 @@
-add_executable(app main.cpp)
-target_compile_features(app PUBLIC cxx_std_20)
+add_library(mylib window.cpp)
 
-target_include_directories(app PUBLIC ../glad/include ../stb/include ../include)
+target_compile_features(mylib PUBLIC cxx_std_20)
 
-target_link_libraries(app PUBLIC glad stb glfw3 GL X11)
+target_include_directories(mylib PUBLIC ../glad/include ../stb/include ../include)
+
+target_link_libraries(mylib PUBLIC glad stb glfw3 GL X11)
