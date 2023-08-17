@@ -1,5 +1,4 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include <window.h>
 #include "stb/stb_image.h"
 
 #include <glm/glm.hpp>
@@ -12,6 +11,8 @@
 #include <iostream>
 #include <vector>
 #include <stdlib.h>
+
+#include <window.h>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -67,41 +68,22 @@ void render(RenderParams& rp, Shader& shader)
 
 int main()
 {
-  // glfw: initialize and configure
-  // ------------------------------
-  glfwInit();
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  WindowParams wp;
+  wp.width = SCR_WIDTH_2;
+  wp.height = SCR_HEIGHT;
+  wp.name = "opengl - split window";
 
-#ifdef __APPLE__
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
+  WindowApplication app(wp);
 
-  // glfw window creation
-  // --------------------
-  GLFWwindow* window = glfwCreateWindow(SCR_WIDTH_2, SCR_HEIGHT, "OpenGL Window", nullptr, nullptr);
-  if (window == nullptr)
-  {
-    std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    return -1;
-  }
-  glfwMakeContextCurrent(window);
-  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-  glfwSetCursorPosCallback(window, mouse_callback);
-  glfwSetScrollCallback(window, scroll_callback);
+  glfwMakeContextCurrent(app.window);
+  glfwSetFramebufferSizeCallback(app.window, framebuffer_size_callback);
+  glfwSetCursorPosCallback(app.window, mouse_callback);
+  glfwSetScrollCallback(app.window, scroll_callback);
 
   // glfw should start capture our mouse
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(app.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  // glad: load all OpenGL function pointers
-  // ---------------------------------------
-  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-  {
-    std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
-  }
+  app.initializeGlad();
 
   glEnable(GL_DEPTH_TEST);
 
@@ -153,9 +135,7 @@ int main()
 
   std::vector<glm::vec3> cubePositions{
     glm::vec3( 0.0f,  0.0f,  0.0f),
-    glm::vec3( 2.0f,  5.0f, -15.0f),
     glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
     glm::vec3( 2.4f, -0.4f, -3.5f),
     glm::vec3(-1.7f,  3.0f, -7.5f),
     glm::vec3( 1.3f, -2.0f, -2.5f),
@@ -163,6 +143,19 @@ int main()
     glm::vec3( 1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };
+  glm::vec3 centroid = glm::vec3(0.0f, 0.0f, 0.0f);
+  glm::vec3 minPoint = glm::vec3(100.0f, 100.0f, 100.0f);
+  for (auto position : cubePositions)
+  {
+    centroid += position;
+    minPoint = glm::vec3(
+        glm::min(minPoint.x, position.x),
+        glm::min(minPoint.y, position.y),
+        glm::min(minPoint.z, position.z)
+    );
+  }
+  centroid = centroid / 8.0f;
+  minPoint = minPoint * 2.0f;
 
 
   unsigned int VBO, VAO;
@@ -237,7 +230,7 @@ int main()
 
   // render loop
   // -----------
-  while (!glfwWindowShouldClose(window))
+  while (!glfwWindowShouldClose(app.window))
   {
     // calculate time to render the frame
     float currentFrame = static_cast<float>(glfwGetTime());
@@ -246,7 +239,7 @@ int main()
     
     // input
     // -----
-    processInput(window);
+    processInput(app.window);
 
     // render
     // ------
@@ -281,8 +274,8 @@ int main()
 
     // render the scene again but from a different point of view
     rparams.view = glm::lookAt(
-        glm::vec3(-1.0f, 7.0f, 10.0f),
-        glm::vec3(0.4f, 0.5f, 5.0f),
+        minPoint,
+        centroid,
         glm::vec3(0.0f, 1.0f, 0.0f)
     );
     rparams.startW = SCR_WIDTH;
@@ -291,7 +284,7 @@ int main()
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(app.window);
     glfwPollEvents();
   }
 
